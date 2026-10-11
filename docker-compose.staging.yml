@@ -1,0 +1,10 @@
+# Staging local (porta 8081):
+#   API_PORT=8081 docker compose -p esg-staging -f docker-compose.yml -f docker-compose.staging.yml up -d --build
+services:
+  mongo:
+    container_name: esg-mongo-staging
+  api:
+    container_name: esg-api-staging
+    image: esg-energy-api:staging
+    environment:
+      APP_ENV: staging

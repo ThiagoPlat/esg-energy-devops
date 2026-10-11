@@ -1,0 +1,43 @@
+# Ambiente LOCAL: API + MongoDB
+#   docker compose up --build
+services:
+  mongo:
+    image: mongo:7
+    container_name: esg-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-esg_energy_db}
+    volumes:
+      - mongo_data:/data/db                                   # persistência
+      - ./mongo-init:/docker-entrypoint-initdb.d:ro           # seed (1ª subida)
+    networks: [esg-net]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  api:
+    build: .
+    image: esg-energy-api:local
+    container_name: esg-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      APP_ENV: local
+      MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/${MONGO_DB:-esg_energy_db}?authSource=admin
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks: [esg-net]
+
+networks:
+  esg-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
